@@ -1,111 +1,552 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@import "tailwindcss";
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+/* ============================================================
+   🌸 JUANITA — Design System v2
+   Full structure · Responsive · Animated star field
+   ============================================================ */
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@theme {
+  --color-j-bg: #0f0f13;
+  --color-j-bg-2: #151519;
+  --color-j-surface: #1c1c24;
+  --color-j-surface-2: #25252f;
+  --color-j-surface-3: #2e2e3a;
+  --color-j-border: #2e2e3a;
+  --color-j-border-light: #3d3d4e;
+  --color-j-text: #ececf1;
+  --color-j-text-2: #a1a1b5;
+  --color-j-text-3: #6b6b80;
+  --color-j-accent: #c084fc;
+  --color-j-accent-soft: rgba(192, 132, 252, 0.10);
+  --color-j-accent-mid: rgba(192, 132, 252, 0.22);
+  --color-j-blue: #7dd3fc;
+  --color-j-blue-soft: rgba(125, 211, 252, 0.10);
+  --color-j-rose: #fda4af;
+  --color-j-rose-soft: rgba(253, 164, 175, 0.10);
+  --color-j-green: #86efac;
+  --color-j-green-soft: rgba(134, 239, 172, 0.08);
+  --color-j-amber: #fcd34d;
+  --color-j-amber-soft: rgba(252, 211, 77, 0.08);
+  --color-j-red: #fca5a5;
+  --color-j-red-soft: rgba(252, 165, 165, 0.08);
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  --animate-fade-in: fade-in 0.4s ease-out both;
+  --animate-slide-up: slide-up 0.45s ease-out both;
+  --animate-scale-in: scale-in 0.25s ease-out both;
+  --animate-pulse-soft: pulse-soft 3s ease-in-out infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+/* ============================================================
+   Keyframes
+   ============================================================ */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes float-up {
+  0%   { transform: translateY(0) scale(1); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(-100vh) scale(0.5); opacity: 0; }
+}
+@keyframes float-down {
+  0%   { transform: translateY(0) scale(1); opacity: 0; }
+  10%  { opacity: 0.8; }
+  90%  { opacity: 0.8; }
+  100% { transform: translateY(100vh) scale(0.5); opacity: 0; }
+}
+@keyframes drift {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(12px); }
+}
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(192,132,252,0.1), 0 0 60px rgba(192,132,252,0.05); }
+  50%      { box-shadow: 0 0 30px rgba(192,132,252,0.2), 0 0 80px rgba(192,132,252,0.08); }
+}
+@keyframes hero-gradient {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: translateY(24px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes slide-up-mobile {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+/* ============================================================
+   Base
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  font-family: 'Inter', 'SF Pro Display', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  margin: 0;
+  background: #0f0f13;
+  color: #ececf1;
+  overflow-x: hidden;
+  min-height: 100svh;
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
+  width: 100%;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* ============================================================
+   ✦ Star field background
+   ============================================================ */
+.stars-container {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: white;
+  opacity: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
+.star--up {
+  animation: float-up var(--dur, 14s) var(--delay, 0s) linear infinite;
+}
+.star--down {
+  animation: float-down var(--dur, 16s) var(--delay, 0s) linear infinite;
+}
+
+/* Ambient gradient orbs */
+.ambient-orb {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 0;
+}
+.ambient-orb--1 {
+  width: 500px; height: 500px;
+  background: #c084fc;
+  top: -100px; left: -100px;
+  animation: drift 20s ease-in-out infinite;
+}
+.ambient-orb--2 {
+  width: 400px; height: 400px;
+  background: #7dd3fc;
+  bottom: -80px; right: -80px;
+  animation: drift 25s ease-in-out infinite reverse;
+}
+.ambient-orb--3 {
+  width: 300px; height: 300px;
+  background: #fda4af;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation: drift 18s ease-in-out infinite;
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2e2e3a; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #3d3d4e; }
+
+/* ============================================================
+   Layout helpers
+   ============================================================ */
+.j-container {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+@media (min-width: 640px) {
+  .j-container { padding-left: 1.5rem; padding-right: 1.5rem; }
+}
+@media (min-width: 1024px) {
+  .j-container { max-width: 780px; padding-left: 2rem; padding-right: 2rem; }
+}
+
+/* ============================================================
+   Cards
+   ============================================================ */
+.j-card {
+  background: #1c1c24;
+  border: 1px solid #2e2e3a;
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+}
+@media (min-width: 640px) {
+  .j-card { border-radius: 20px; }
+}
+.j-card-hover {
+  transition: background 0.2s, border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+}
+.j-card-hover:hover {
+  background: #25252f;
+  border-color: #3d3d4e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+/* ============================================================
+   Chips (action buttons)
+   ============================================================ */
+.j-chip {
   display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #1c1c24;
+  border: 1px solid #2e2e3a;
+  border-radius: 999px;
+  font-size: 13px;
+  color: #ececf1;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+  white-space: nowrap;
+}
+.j-chip:hover {
+  background: #25252f;
+  border-color: #3d3d4e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.j-chip:active {
+  transform: translateY(0) scale(0.97);
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+/* Action cards — for empty state (more prominent) */
+.j-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 16px;
+  background: #1c1c24;
+  border: 1px solid #2e2e3a;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  text-align: center;
+  min-width: 0;
 }
+.j-action-card:hover {
+  background: #25252f;
+  border-color: rgba(192, 132, 252, 0.4);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px -10px rgba(192, 132, 252, 0.25), 0 8px 32px rgba(0,0,0,0.3);
+}
+.j-action-card:active {
+  transform: translateY(0) scale(0.98);
+}
+.j-action-card__icon {
+  width: 48px; height: 48px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  transition: transform 0.3s;
+}
+.j-action-card:hover .j-action-card__icon {
+  transform: scale(1.1);
+}
+
+/* ============================================================
+   Gradient text
+   ============================================================ */
+.j-gradient-text {
+  background: linear-gradient(135deg, #c084fc 0%, #7dd3fc 40%, #fda4af 80%, #c084fc 100%);
+  background-size: 200% 200%;
+  animation: hero-gradient 6s ease infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================================
+   Inputs
+   ============================================================ */
+.j-input {
+  width: 100%;
+  background: #25252f;
+  border: 1px solid #2e2e3a;
+  border-radius: 12px;
+  padding: 11px 16px;
+  font-size: 14px;
+  color: #ececf1;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.j-input::placeholder { color: #6b6b80; }
+.j-input:focus {
+  border-color: rgba(192, 132, 252, 0.4);
+  box-shadow: 0 0 0 3px rgba(192, 132, 252, 0.08);
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.j-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 24px;
+  background: linear-gradient(135deg, #c084fc, #a855f7);
+  color: #0f0f13;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 12px rgba(192,132,252,0.2);
+}
+.j-btn-primary:hover {
+  background: linear-gradient(135deg, #d4a5fd, #b876f8);
+  box-shadow: 0 4px 20px rgba(192,132,252,0.3);
+  transform: translateY(-1px);
+}
+.j-btn-primary:active { transform: translateY(0) scale(0.97); }
+.j-btn-primary:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.j-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 24px;
+  background: transparent;
+  color: #a1a1b5;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #2e2e3a;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.j-btn-secondary:hover { background: #25252f; color: #ececf1; border-color: #3d3d4e; }
+.j-btn-secondary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ============================================================
+   Shimmer skeleton
+   ============================================================ */
+.shimmer-bg {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.025) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+/* ============================================================
+   Modal — responsive (bottom sheet on mobile)
+   ============================================================ */
+.j-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  z-index: 50;
+}
+
+.j-modal-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+@media (min-width: 640px) {
+  .j-modal-wrap {
+    align-items: center;
+    padding: 1rem;
+  }
+}
+
+.j-modal {
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #1c1c24;
+  border: 1px solid #2e2e3a;
+  border-radius: 24px 24px 0 0;
+  padding: 24px 20px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+  animation: slide-up-mobile 0.3s ease-out;
+}
+@media (min-width: 640px) {
+  .j-modal {
+    max-width: 480px;
+    border-radius: 24px;
+    padding: 28px;
+    animation: modal-in 0.25s ease-out;
+  }
+}
+.j-modal--lg {
+  max-width: 100%;
+}
+@media (min-width: 640px) {
+  .j-modal--lg { max-width: 540px; }
+}
+
+/* ============================================================
+   Footer
+   ============================================================ */
+.j-footer {
+  padding: 0;
+  text-align: center;
+  font-size: 10px;
+  color: #6b6b80;
+}
+
+/* ============================================================
+   Header
+   ============================================================ */
+.j-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(15,15,19,0.8);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(46,46,58,0.4);
+}
+
+/* ============================================================
+   Progress bar
+   ============================================================ */
+.j-progress-track {
+  width: 100%;
+  height: 6px;
+  background: #25252f;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.j-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease, background 0.3s;
+}
+
+/* ============================================================
+   Document row — mobile touch delete
+   ============================================================ */
+.j-doc-delete {
+  opacity: 1;
+}
+@media (min-width: 640px) {
+  .j-doc-delete {
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .group:hover .j-doc-delete {
+    opacity: 1;
+  }
+}
+
+/* ============================================================
+   Responsive text utilities
+   ============================================================ */
+.j-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+@media (min-width: 640px) {
+  .j-title { font-size: 2.5rem; }
+}
+@media (min-width: 1024px) {
+  .j-title { font-size: 3rem; }
+}
+
+.j-subtitle {
+  font-size: 0.85rem;
+  color: #6b6b80;
+  line-height: 1.5;
+  max-width: 400px;
+}
+@media (min-width: 640px) {
+  .j-subtitle { font-size: 0.9rem; max-width: 460px; }
+}
+
+/* ============================================================
+   Glow ring (hero avatar)
+   ============================================================ */
+.j-glow-ring {
+  animation: glow-pulse 4s ease-in-out infinite;
+  border-radius: 50%;
+}
+
+/* ============================================================
+   Spotlight — mouse-follow radial glow
+   ============================================================ */
+.j-spotlight {
+  position: relative;
+  overflow: hidden;
+  z-index: 10;
+}
+.j-spotlight::before {
+  content: '';
+  position: absolute;
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(192, 132, 252, 0.08) 0%,
+    rgba(125, 211, 252, 0.04) 30%,
+    transparent 70%
+  );
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  left: var(--mx, -1000px);
+  top: var(--my, -1000px);
+  transition: left 0.08s linear, top 0.08s linear, opacity 0.3s;
+  opacity: var(--spotlight-opacity, 0);
+  z-index: 0;
+}
+
+/* ============================================================
+   Scrollbar hide utility
+   ============================================================ */
+.scrollbar-none { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
