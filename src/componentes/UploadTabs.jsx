@@ -34,7 +34,10 @@ export default function UploadTabs({
   availableSlots = 10,
   existingUrls = [],
   existingNames = [],
+  variant = 'default',
+  extraAction = null,
 }) {
+  const isPremium = variant === 'premium';
   const [tab, setTab] = useState('file');
 
   /* ── File ── */
@@ -133,22 +136,38 @@ export default function UploadTabs({
   return (
     <div>
       {/* Tab bar */}
-      <div className="flex gap-1 p-1 bg-white/5 rounded-xl mb-6 w-fit">
-        {TABS.map(({ id, label, Icon: TabIcon }) => {
-          const TI = TabIcon;
-          return (
+      {isPremium ? (
+        <div className="upload-tab-strip">
+          {TABS.map(({ id, label, Icon: TI }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
               disabled={busy}
-              className={`upload-tab-btn ${tab === id ? 'upload-tab-btn--active' : ''}`}
+              className={`upload-tab-pill ${tab === id ? 'upload-tab-pill--active' : ''}`}
             >
-              <TI size={12} />
-              {label}
+              <TI size={18} strokeWidth={1} />
+              <span>{label}</span>
             </button>
-          );
-        })}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex gap-1 p-1 bg-white/5 rounded-xl mb-6 w-fit">
+          {TABS.map(({ id, label, Icon: TabIcon }) => {
+            const TI = TabIcon;
+            return (
+              <button
+                key={id}
+                onClick={() => setTab(id)}
+                disabled={busy}
+                className={`upload-tab-btn ${tab === id ? 'upload-tab-btn--active' : ''}`}
+              >
+                <TI size={12} />
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ════ TAB: FILE ════ */}
       {tab === 'file' && (
@@ -158,7 +177,9 @@ export default function UploadTabs({
             onDragLeave={() => setDragging(false)}
             onDrop={(e) => { e.preventDefault(); setDragging(false); pickFile(e.dataTransfer.files); }}
             onClick={() => fileRef.current?.click()}
-            className={`dropzone-area ${dragging ? 'dropzone-area--active' : file ? 'dropzone-area--filled' : ''}`}
+            className={isPremium
+              ? `drop-zone-min ${dragging ? 'drop-zone-min--active' : file ? 'drop-zone-min--filled' : ''}`
+              : `dropzone-area ${dragging ? 'dropzone-area--active' : file ? 'dropzone-area--filled' : ''}`}
           >
             <input ref={fileRef} type="file" accept={MIME} className="hidden" onChange={e => pickFile(e.target.files)} />
             {file ? (
@@ -176,6 +197,12 @@ export default function UploadTabs({
                   <FaTrash size={9} /> Quitar
                 </button>
               </div>
+            ) : isPremium ? (
+              <>
+                <FaCloudArrowUp size={36} className={`${dragging ? 'text-cyan-300' : 'text-white/25'} transition-colors`} strokeWidth={1} />
+                <p>Seleccione o arrastre archivo</p>
+                <p style={{ fontSize: '9.5px', letterSpacing: '0.22em', color: 'rgba(255,255,255,0.25)' }}>PDF · TXT · MD · DOCX — Máx 20 MB</p>
+              </>
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <FaCloudArrowUp size={32} className={`${dragging ? 'text-indigo-400' : 'text-white/20'} transition-colors`} />
@@ -187,15 +214,28 @@ export default function UploadTabs({
             )}
           </div>
           {fileErr && <p className="text-[12.5px] text-red-400 flex items-center gap-1.5"><FaCircleExclamation size={11} />{fileErr}</p>}
-          <div className="flex justify-end">
-            <button
-              onClick={submitFile}
-              disabled={busy || !file || !!fileErr || disabled}
-              className="btn-primary"
-            >
-              {busy ? <><FaSpinner className="animate-spin" size={12} /> Subiendo…</> : 'Subir archivo'}
-            </button>
-          </div>
+          {isPremium ? (
+            <div className="action-row">
+              <button
+                onClick={submitFile}
+                disabled={busy || !file || !!fileErr || disabled}
+                className="btn-pill btn-pill--primary"
+              >
+                {busy ? <><FaSpinner className="animate-spin" size={11} /> Subiendo…</> : <><FaFileArrowUp size={12} /> Subir archivo</>}
+              </button>
+              {extraAction}
+            </div>
+          ) : (
+            <div className="flex justify-end">
+              <button
+                onClick={submitFile}
+                disabled={busy || !file || !!fileErr || disabled}
+                className="btn-primary"
+              >
+                {busy ? <><FaSpinner className="animate-spin" size={12} /> Subiendo…</> : 'Subir archivo'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -244,17 +284,18 @@ export default function UploadTabs({
             </div>
           )}
 
-          <div className="flex justify-end">
+          <div className={isPremium ? 'action-row' : 'flex justify-end'}>
             <button
               onClick={submitUrls}
               disabled={busy || !urlQueue.length || disabled}
-              className="btn-primary"
+              className={isPremium ? 'btn-pill btn-pill--primary' : 'btn-primary'}
             >
               {busy
                 ? <><FaSpinner className="animate-spin" size={12} /> Enviando…</>
                 : `Agregar ${urlQueue.length > 1 ? `${urlQueue.length} URLs` : 'URL'}`
               }
             </button>
+            {isPremium && extraAction}
           </div>
         </div>
       )}
@@ -291,14 +332,15 @@ export default function UploadTabs({
             </div>
           </div>
           {textErr && <p className="text-[12.5px] text-red-400 flex items-center gap-1.5"><FaCircleExclamation size={11} />{textErr}</p>}
-          <div className="flex justify-end">
+          <div className={isPremium ? 'action-row' : 'flex justify-end'}>
             <button
               onClick={submitText}
               disabled={busy || body.trim().length < MIN_TEXT || !title.trim() || disabled}
-              className="btn-primary"
+              className={isPremium ? 'btn-pill btn-pill--primary' : 'btn-primary'}
             >
               {busy ? <><FaSpinner className="animate-spin" size={12} /> Guardando…</> : 'Guardar texto'}
             </button>
+            {isPremium && extraAction}
           </div>
         </div>
       )}

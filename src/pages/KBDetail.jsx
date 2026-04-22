@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FaArrowLeft, FaGlobe, FaFilePdf, FaFileLines,
-  FaTrash, FaSpinner, FaCircleXmark,
+  FaArrowLeft, FaGlobe, FaRegFile, FaRegFileLines,
+  FaRegTrashCan, FaSpinner, FaMagnifyingGlass,
+  FaCloudArrowDown,
 } from 'react-icons/fa6';
 import toast from 'react-hot-toast';
 import { getKnowledgeBaseDetails, addSource, deleteSource } from '../services/api';
@@ -12,25 +13,60 @@ import UploadTabs from '../componentes/UploadTabs';
 
 const MAX_DOCS = 10;
 
-/* ─── Type icon config ─── */
+/* ─── Type icon resolver ─── */
 const TYPE_CFG = {
-  url:      { Icon: FaGlobe,     label: 'URL',     cls: 'text-sky-400',    bg: 'bg-sky-400/10',    border: 'border-sky-400/20' },
-  document: { Icon: FaFilePdf,   label: 'Archivo', cls: 'text-rose-400',   bg: 'bg-rose-400/10',   border: 'border-rose-400/20' },
-  file:     { Icon: FaFilePdf,   label: 'Archivo', cls: 'text-rose-400',   bg: 'bg-rose-400/10',   border: 'border-rose-400/20' },
-  text:     { Icon: FaFileLines, label: 'Texto',   cls: 'text-violet-400', bg: 'bg-violet-400/10', border: 'border-violet-400/20' },
+  url:      { Icon: FaGlobe,        label: 'Url' },
+  document: { Icon: FaRegFile,      label: 'Archivo' },
+  file:     { Icon: FaRegFile,      label: 'Archivo' },
+  text:     { Icon: FaRegFileLines, label: 'Texto' },
 };
 const typeCfg = (t) => TYPE_CFG[t] || TYPE_CFG.document;
 
-/* ─── Skeleton card ─── */
-function SkeletonDocCard() {
+/* ─── Progress ring (SVG) ─── */
+function ProgressRing({ value, max }) {
+  const pct = Math.min((value / max) * 100, 100);
+  const r = 18;
+  const c = 2 * Math.PI * r;
+  const offset = c - (pct / 100) * c;
+  const stroke = pct >= 100 ? '#f87171' : pct >= 80 ? '#fbbf24' : '#67e8f9';
   return (
-    <div className="flex items-center gap-4 px-5 py-4 border-b border-white/5 last:border-0">
-      <div className="w-9 h-9 rounded-lg bg-white/5 animate-pulse flex-shrink-0" />
-      <div className="flex-1 space-y-1.5">
-        <div className="h-3 w-44 bg-white/5 rounded animate-pulse" />
-        <div className="h-2.5 w-16 bg-white/5 rounded animate-pulse" />
+    <svg width="48" height="48" viewBox="0 0 48 48" className="flex-shrink-0">
+      <circle cx="24" cy="24" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="2.5" />
+      <circle
+        cx="24" cy="24" r={r}
+        fill="none"
+        stroke={stroke}
+        strokeWidth="2.5"
+        strokeDasharray={c}
+        strokeDashoffset={offset}
+        strokeLinecap="round"
+        transform="rotate(-90 24 24)"
+        style={{ transition: 'stroke-dashoffset 0.5s ease, stroke 0.3s' }}
+      />
+      <text
+        x="24" y="27"
+        textAnchor="middle"
+        fontSize="10"
+        fill="rgba(255,255,255,0.85)"
+        fontWeight="500"
+        letterSpacing="0.5"
+      >
+        {Math.round(pct)}%
+      </text>
+    </svg>
+  );
+}
+
+/* ─── Skeleton row ─── */
+function SkeletonDocRow() {
+  return (
+    <div className="doc-row-float">
+      <div className="doc-icon shimmer-bg" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      <div className="flex-1 space-y-2">
+        <div className="h-3 w-44 bg-white/4 rounded animate-pulse" />
+        <div className="h-2 w-16 bg-white/4 rounded animate-pulse" />
       </div>
-      <div className="w-8 h-8 bg-white/5 rounded-lg animate-pulse flex-shrink-0" />
+      <div className="doc-trash" style={{ opacity: 0.3 }} />
     </div>
   );
 }
@@ -45,6 +81,8 @@ export default function KBDetail() {
   const [loading, setLoading]       = useState(true);
   const [confirmId, setConfirmId]   = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [search, setSearch]         = useState('');
+  const [syncing, setSyncing]       = useState(false);
 
   /* ─── Load detail ─── */
   const loadDetail = useCallback(async (silent = false) => {
@@ -63,18 +101,24 @@ export default function KBDetail() {
   useEffect(() => { loadDetail(); }, [id]);
 
   /* ─── Derived ─── */
-  const count  = sources.length;
-  const atMax  = count >= MAX_DOCS;
-  const pct    = Math.min((count / MAX_DOCS) * 100, 100);
-  const barCls = atMax ? 'bg-red-500' : count >= MAX_DOCS - 2 ? 'bg-amber-400' : 'bg-emerald-500';
-  const cntCls = atMax ? 'text-red-400' : count >= MAX_DOCS - 2 ? 'text-amber-400' : 'text-emerald-400';
+  const count = sources.length;
+  const atMax = count >= MAX_DOCS;
 
   const existingUrls  = sources.filter(d => (d.source_type || d.type) === 'url').map(d => d.url || d.source_name || d.name || '');
   const existingNames = sources.map(d => d.title || d.source_name || d.name || d.filename || '');
 
+  const filtered = useMemo(() => {
+    if (!search.trim()) return sources;
+    const q = search.toLowerCase();
+    return sources.filter(d => {
+      const n = (d.title || d.source_name || d.name || d.filename || d.url || '').toLowerCase();
+      return n.includes(q);
+    });
+  }, [sources, search]);
+
   /* ─── Upload ─── */
   const handleUpload = async (source) => {
-    if (atMax) { toast.error('Esta KB ya tiene 10 documentos (límite máximo)'); return; }
+    if (atMax) { toast.error('Esta KB ya tiene 10 documentos'); return; }
     const r = await addSource(id, source);
     if (r.error) { toast.error('Error al agregar el documento'); throw new Error(); }
     toast.success('Documento agregado');
@@ -82,7 +126,16 @@ export default function KBDetail() {
     fetchList(true);
   };
 
-  /* ─── Delete (2-tap confirm) ─── */
+  /* ─── Sync (refresh from server) ─── */
+  const handleSync = async () => {
+    setSyncing(true);
+    await loadDetail(true);
+    await fetchList(true);
+    setSyncing(false);
+    toast.success('Sincronizado con Retell');
+  };
+
+  /* ─── Delete (2-tap) ─── */
   const handleDelete = async (sourceId) => {
     if (confirmId === sourceId) {
       setConfirmId(null);
@@ -104,162 +157,135 @@ export default function KBDetail() {
   return (
     <div className="page">
 
-      {/* ── Back + Title ── */}
-      <div className="flex items-center gap-3 mb-8">
-        <button
-          onClick={() => navigate('/')}
-          className="icon-btn flex-shrink-0"
-          title="Volver al listado"
-        >
-          <FaArrowLeft size={13} />
-        </button>
-        <div className="min-w-0">
-          <p className="text-[11px] uppercase tracking-widest text-white/25 font-semibold mb-1">
-            Knowledge Bases
-          </p>
-          <h1 className="page-title leading-none truncate">{displayName}</h1>
+      {/* ── Header ── */}
+      <div className="page-header">
+        <div className="flex items-start gap-5 min-w-0">
+          <button
+            onClick={() => navigate('/')}
+            className="icon-btn flex-shrink-0 mt-2"
+            title="Volver"
+            style={{ borderRadius: '999px' }}
+          >
+            <FaArrowLeft size={11} />
+          </button>
+          <div className="min-w-0">
+            <h1 className="page-title-xl truncate">{displayName}</h1>
+            <p className="page-sub">Base de Conocimiento &nbsp;/&nbsp; IA Activa</p>
+          </div>
         </div>
-      </div>
 
-      {/* ── Capacity card ── */}
-      <div className="card p-5 mb-5">
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-white/50">Documentos en uso</span>
-          <span className={`text-sm font-bold tabular-nums ${cntCls}`}>
-            {loading ? '…' : `${count} / ${MAX_DOCS}`}
-          </span>
-        </div>
-        <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${barCls}`}
-            style={{ width: loading ? '0%' : `${pct}%` }}
+        {/* Search top-right */}
+        <div className="search-wrap">
+          <FaMagnifyingGlass size={11} />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Buscar documentos…"
+            className="search-input"
           />
         </div>
-        {atMax && !loading && (
-          <p className="mt-3 text-[12px] text-red-400 flex items-center gap-1.5">
-            <FaCircleXmark size={11} />
-            Límite alcanzado — elimina un documento para agregar otro
-          </p>
-        )}
       </div>
 
-      {/* ── Upload tabs ── */}
-      <div className="card p-5 mb-5">
-        <p className="text-[11px] uppercase tracking-widest text-white/30 font-semibold mb-5">
-          Agregar documento
-        </p>
+      {/* ── Capacity ring ── */}
+      <div className="mb-10">
+        <div className="ring-card">
+          <ProgressRing value={loading ? 0 : count} max={MAX_DOCS} />
+          <div className="ring-info">
+            <span className="ring-info-label">Documentos</span>
+            <span className="ring-info-value">{loading ? '…' : `${count} de ${MAX_DOCS}`}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Glass upload panel ── */}
+      <div className="glass-panel">
         <UploadTabs
+          variant="premium"
           onSubmit={handleUpload}
           disabled={atMax}
           availableSlots={Math.max(0, MAX_DOCS - count)}
           existingUrls={existingUrls}
           existingNames={existingNames}
+          extraAction={
+            <button
+              type="button"
+              onClick={handleSync}
+              disabled={syncing}
+              className="btn-pill"
+            >
+              {syncing
+                ? <><FaSpinner className="animate-spin" size={11} /> Sincronizando…</>
+                : <><FaCloudArrowDown size={12} /> Guardar y Sincronizar</>
+              }
+            </button>
+          }
         />
       </div>
 
-      {/* ── Sources list ── */}
-      <div className="card overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/6">
-          <p className="text-[11px] uppercase tracking-widest text-white/30 font-semibold">
-            Documentos actuales{!loading && ` (${count})`}
-          </p>
+      {/* ── Floating documents section ── */}
+      <p className="section-label-float">
+        Documentos actuales{!loading && ` (${count})`}
+      </p>
+
+      {loading && (
+        <div>
+          {[1, 2, 3].map(i => <SkeletonDocRow key={i} />)}
         </div>
+      )}
 
-        {/* Loading */}
-        {loading && (
-          <div>
-            {[1, 2, 3].map(i => <SkeletonDocCard key={i} />)}
-          </div>
-        )}
+      {!loading && filtered.length === 0 && (
+        <p className="py-12 text-center text-[12px] tracking-[0.2em] uppercase text-white/25">
+          {search ? 'Sin resultados' : 'Sin documentos aún'}
+        </p>
+      )}
 
-        {/* Empty */}
-        {!loading && sources.length === 0 && (
-          <p className="py-10 text-center text-sm text-white/25">
-            No hay documentos en esta KB aún
-          </p>
-        )}
+      {!loading && filtered.length > 0 && (
+        <AnimatePresence mode="popLayout" initial={false}>
+          {filtered.map((doc, i) => {
+            const sid  = doc.sourceId || doc.knowledge_base_source_id || doc.source_id || doc._id || doc.id || `s-${i}`;
+            const name = doc.title || doc.source_name || doc.name || doc.filename || doc.url || 'Sin nombre';
+            const type = doc.source_type || doc.type || 'document';
+            const cfg  = typeCfg(type);
+            const { Icon } = cfg;
+            const busy = deletingId === sid;
+            const conf = confirmId === sid;
 
-        {/* List */}
-        {!loading && sources.length > 0 && (
-          <AnimatePresence mode="popLayout" initial={false}>
-            {sources.map((doc, i) => {
-              const sid  = doc.sourceId || doc.knowledge_base_source_id || doc.source_id || doc._id || doc.id || `s-${i}`;
-              const name = doc.title || doc.source_name || doc.name || doc.filename || doc.url || 'Sin nombre';
-              const type = doc.source_type || doc.type || 'document';
-              const cfg  = typeCfg(type);
-              const { Icon } = cfg;
-              const busy = deletingId === sid;
-              const conf = confirmId === sid;
+            return (
+              <motion.div
+                key={sid}
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: busy ? 0.4 : 1, y: 0 }}
+                exit={{ opacity: 0, x: -16 }}
+                transition={{ duration: 0.18, delay: i * 0.03 }}
+                className="doc-row-float"
+              >
+                <div className="doc-icon">
+                  <Icon size={14} className="text-white/55" />
+                </div>
 
-              return (
-                <motion.div
-                  key={sid}
-                  layout
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: busy ? 0.4 : 1, y: 0 }}
-                  exit={{ opacity: 0, x: -16 }}
-                  transition={{ duration: 0.18, delay: i * 0.03 }}
-                  className="border-b border-white/5 last:border-0"
+                <div className="flex-1 min-w-0">
+                  <p className="doc-name truncate" title={name}>{name}</p>
+                  <p className="doc-tag">{cfg.label}</p>
+                </div>
+
+                <button
+                  onClick={() => handleDelete(sid)}
+                  disabled={busy}
+                  title={conf ? 'Confirmar eliminación' : 'Eliminar'}
+                  className={`doc-trash ${conf ? 'doc-trash--confirm' : ''}`}
                 >
-                  <div className="flex items-center gap-4 px-5 py-4">
-                    {/* Icon */}
-                    <div className={`w-9 h-9 rounded-lg ${cfg.bg} border ${cfg.border} flex items-center justify-center flex-shrink-0`}>
-                      <Icon size={13} className={cfg.cls} />
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13.5px] text-white/80 truncate" title={name}>{name}</p>
-                      <span className={`inline-flex items-center gap-1 mt-1 text-[10px] font-semibold uppercase tracking-wide ${cfg.cls} opacity-80`}>
-                        {cfg.label}
-                      </span>
-                    </div>
-
-                    {/* Delete */}
-                    <button
-                      onClick={() => handleDelete(sid)}
-                      disabled={busy}
-                      title={conf ? 'Confirmar eliminación' : 'Eliminar'}
-                      className={`icon-btn flex-shrink-0 ${conf ? 'icon-btn--confirm' : 'icon-btn--danger'}`}
-                    >
-                      {busy
-                        ? <FaSpinner size={12} className="animate-spin" />
-                        : <FaTrash size={12} />
-                      }
-                    </button>
-                  </div>
-
-                  {/* Confirm hint */}
-                  <AnimatePresence>
-                    {conf && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="flex items-center justify-between px-5 py-2.5 bg-red-500/5 border-t border-red-500/10">
-                          <span className="text-[12px] text-red-400">
-                            Haz clic en el icono de nuevo para confirmar
-                          </span>
-                          <button
-                            onClick={() => setConfirmId(null)}
-                            className="text-[11px] text-white/30 hover:text-white/60 transition-colors ml-4"
-                          >
-                            Cancelar
-                          </button>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </motion.div>
-              );
-            })}
-          </AnimatePresence>
-        )}
-      </div>
-
+                  {busy
+                    ? <FaSpinner size={11} className="animate-spin" />
+                    : <FaRegTrashCan size={12} />
+                  }
+                </button>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+      )}
     </div>
   );
 }

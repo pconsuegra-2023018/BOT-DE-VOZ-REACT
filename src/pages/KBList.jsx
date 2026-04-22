@@ -5,7 +5,7 @@ import {
   FaPlus, FaTrash, FaDatabase, FaSpinner,
   FaTriangleExclamation, FaCircleExclamation,
   FaXmark, FaFileArrowUp, FaGlobe, FaPenToSquare,
-  FaCloudArrowUp, FaCheck,
+  FaCloudArrowUp, FaCheck, FaBrain, FaArrowRight, FaRegTrashCan,
 } from 'react-icons/fa6';
 import toast from 'react-hot-toast';
 import { useKB } from '../context/KBContext';
@@ -22,6 +22,23 @@ const NEW_TABS = [
   { id: 'url',  label: 'URL',     Icon: FaGlobe },
   { id: 'text', label: 'Texto',   Icon: FaPenToSquare },
 ];
+
+/* Relative-time formatter for KB metadata */
+function formatRelative(ts) {
+  if (!ts) return null;
+  const ms = typeof ts === 'number' ? (ts < 1e12 ? ts * 1000 : ts) : Date.parse(ts);
+  if (Number.isNaN(ms)) return null;
+  const diff = Date.now() - ms;
+  const min = Math.floor(diff / 60000);
+  if (min < 1)    return 'Ahora mismo';
+  if (min < 60)   return `Hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24)     return `Hace ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d === 1)    return 'Ayer';
+  if (d < 7)      return `Hace ${d} días`;
+  return new Date(ms).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+}
 
 /* ─── Nueva KB modal ─── */
 function NewKBModal({ onClose, onCreated }) {
@@ -368,11 +385,22 @@ export default function KBList() {
 
       {/* KB cards */}
       {!loading && kbList.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <AnimatePresence mode="popLayout">
             {kbList.map((kb, i) => {
               const id   = kb.knowledge_base_id || kb.id || kb._id;
               const name = kb.name || kb.knowledge_base_name || id;
+              const docCount = kb.sources?.length
+                ?? kb.knowledge_base_sources?.length
+                ?? kb.source_count
+                ?? kb.documents?.length
+                ?? null;
+              const ts = kb.last_refreshed_timestamp
+                ?? kb.last_modification_timestamp
+                ?? kb.updated_at
+                ?? kb.modified_at
+                ?? null;
+              const lastTrain = formatRelative(ts);
               const busy = deletingId === id;
 
               return (
@@ -383,38 +411,46 @@ export default function KBList() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2, delay: i * 0.04 }}
-                  className={`card card-hover ${busy ? 'opacity-40 pointer-events-none' : ''}`}
+                  className={`kb-card ${busy ? 'opacity-40 pointer-events-none' : ''}`}
+                  onClick={(e) => {
+                    if (e.target.closest('button')) return;
+                    navigate(`/kb/${id}`);
+                  }}
                 >
-                  <div className="flex items-center gap-5 p-5 sm:p-6">
-                    {/* Icon */}
-                    <div className="w-11 h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center flex-shrink-0">
-                      <FaDatabase size={15} className="text-indigo-400" />
+                  {/* Left — brain + name + meta */}
+                  <div className="kb-card__left">
+                    <div className="kb-card__icon">
+                      <FaBrain size={18} />
                     </div>
+                    <div className="min-w-0">
+                      <h3 className="kb-card__title">{name}</h3>
+                      <p className="kb-card__meta">
+                        {docCount != null && <>Documentos: {docCount}</>}
+                        {docCount != null && lastTrain && <span className="kb-card__sep">//</span>}
+                        {lastTrain && <>Último entrenamiento: {lastTrain}</>}
+                        {docCount == null && !lastTrain && 'Knowledge Base activa'}
+                      </p>
+                    </div>
+                  </div>
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[15px] font-semibold text-white truncate">{name}</p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => navigate(`/kb/${id}`)}
-                        className="btn-secondary text-[13px] px-4 py-2 flex items-center gap-2"
-                      >
-                        <FaDatabase size={11} /> Administrar
-                      </button>
-                      <button
-                        onClick={() => setDeletingKB(kb)}
-                        className="icon-btn icon-btn--danger"
-                        title="Eliminar KB"
-                      >
-                        {busy
-                          ? <FaSpinner size={13} className="animate-spin" />
-                          : <FaTrash size={13} />
-                        }
-                      </button>
-                    </div>
+                  {/* Right — actions */}
+                  <div className="kb-card__actions">
+                    <button
+                      onClick={() => navigate(`/kb/${id}`)}
+                      className="kb-card__manage"
+                    >
+                      Administrar <FaArrowRight size={10} />
+                    </button>
+                    <button
+                      onClick={() => setDeletingKB(kb)}
+                      className="kb-card__trash"
+                      title="Eliminar KB"
+                    >
+                      {busy
+                        ? <FaSpinner size={12} className="animate-spin" />
+                        : <FaRegTrashCan size={13} />
+                      }
+                    </button>
                   </div>
                 </M>
               );

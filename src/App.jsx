@@ -1,6 +1,6 @@
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { FaFolder } from 'react-icons/fa6';
+import { FaRegFolderOpen, FaRegCircle } from 'react-icons/fa6';
 import { Toaster } from 'react-hot-toast';
 import { KBProvider, useKB } from './context/KBContext';
 import KBList   from './pages/KBList';
@@ -24,58 +24,59 @@ function useHealth() {
 }
 
 /* ─── Sidebar ─── */
-function Sidebar() {
+function Sidebar({ collapsed, onToggle }) {
   const { kbList, loading } = useKB();
   const health = useHealth();
   const navigate = useNavigate();
 
-  const dot = {
-    ok:       'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.7)]',
-    error:    'bg-red-400',
-    checking: 'bg-yellow-400',
-  }[health] ?? 'bg-yellow-400';
+  const dotCls = {
+    ok:       'brand-dot brand-dot--ok',
+    error:    'brand-dot brand-dot--err',
+    checking: 'brand-dot brand-dot--wait',
+  }[health] ?? 'brand-dot brand-dot--wait';
 
-  const label = { ok: 'En línea', error: 'Sin conexión', checking: 'Verificando…' }[health];
+  const label = { ok: 'En línea', error: 'Sin conexión', checking: 'Verificando' }[health];
 
   return (
-    <aside className="sidebar">
-      {/* Brand */}
-      <div className="px-6 pt-7 pb-6 border-b border-white/5">
-        <h1
-          onClick={() => navigate('/')}
-          className="text-xl font-bold text-white tracking-tight cursor-pointer select-none"
-        >
-          Juanita
-        </h1>
-        <div className="flex items-center gap-2 mt-2">
-          <span className={`inline-block w-2 h-2 rounded-full ${dot}`} />
-          <span className="text-xs text-white/40">{label}</span>
+    <aside className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}>
+      {/* Brand + toggle */}
+      <div className="brand-block">
+        {!collapsed && (
+          <h1 className="brand-name" onClick={() => navigate('/')}>Claudia</h1>
+        )}
+        <div className={`brand-status ${collapsed ? 'justify-center' : ''}`} style={collapsed ? { padding: '4px 0 0' } : {}}>
+          {!collapsed && <span className={dotCls} />}
+          {!collapsed && <span>{label}</span>}
+          {collapsed && <span className={`${dotCls} mx-auto`} />}
         </div>
+        <button onClick={onToggle} className="sidebar-toggle" title={collapsed ? 'Expandir' : 'Colapsar'}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            {collapsed
+              ? <path d="M4 3l5 4-5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              : <path d="M10 3L5 7l5 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            }
+          </svg>
+        </button>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-5 overflow-y-auto">
-        <p className="px-3 mb-2 text-[10px] uppercase tracking-widest text-white/25 font-semibold">
-          Colecciones
-        </p>
+      <nav className="flex-1 px-2 overflow-y-auto overflow-x-hidden">
+        {!collapsed && <p className="sidebar-section">Colecciones</p>}
 
-        {/* Home link */}
         <NavLink
           to="/"
           end
-          className={({ isActive }) =>
-            `sidebar-link ${isActive ? 'sidebar-link--active' : ''}`
-          }
+          title={collapsed ? 'Todas las KBs' : undefined}
+          className={({ isActive }) => `sidebar-link ${collapsed ? 'sidebar-link--icon' : ''} ${isActive ? 'sidebar-link--active' : ''}`}
         >
-          <FaFolder size={13} className="flex-shrink-0 opacity-60" />
-          <span>Todas las KBs</span>
+          <FaRegFolderOpen size={13} className="flex-shrink-0" />
+          {!collapsed && <span>Todas las KBs</span>}
         </NavLink>
 
-        {/* Dynamic KB links */}
-        {loading && (
-          <div className="space-y-1 mt-1">
+        {loading && !collapsed && (
+          <div className="space-y-1 mt-2">
             {[1, 2].map((i) => (
-              <div key={i} className="h-8 rounded-lg bg-white/5 animate-pulse mx-1" />
+              <div key={i} className="h-9 rounded-lg bg-white/4 animate-pulse mx-2" />
             ))}
           </div>
         )}
@@ -86,15 +87,26 @@ function Sidebar() {
             <NavLink
               key={id}
               to={`/kb/${id}`}
-              className={({ isActive }) =>
-                `sidebar-link ${isActive ? 'sidebar-link--active' : ''}`
-              }
+              title={collapsed ? name : undefined}
+              className={({ isActive }) => `sidebar-link ${collapsed ? 'sidebar-link--icon' : ''} ${isActive ? 'sidebar-link--active' : ''}`}
             >
-              <FaFolder size={13} className="flex-shrink-0 opacity-60" />
-              <span className="truncate">{name}</span>
+              <FaRegCircle size={9} className="flex-shrink-0 opacity-60" />
+              {!collapsed && <span className="truncate">{name}</span>}
             </NavLink>
           );
         })}
+
+        {!collapsed && <p className="sidebar-section">Comportamiento</p>}
+        {collapsed && <div className="my-3 mx-auto w-px h-4 bg-white/10" />}
+        <NavLink
+          to="/"
+          end
+          title={collapsed ? 'Identidad de IA' : undefined}
+          className={({ isActive }) => `sidebar-link ${collapsed ? 'sidebar-link--icon' : ''} ${isActive ? 'sidebar-link--active' : ''}`}
+        >
+          <FaRegCircle size={9} className="flex-shrink-0 opacity-60" />
+          {!collapsed && <span>Identidad de IA</span>}
+        </NavLink>
       </nav>
     </aside>
   );
@@ -102,17 +114,20 @@ function Sidebar() {
 
 /* ─── Layout shell ─── */
 function Layout() {
+  const [collapsed, setCollapsed] = useState(false);
   return (
     <div className="app-shell">
-      <Sidebar />
+      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(p => !p)} />
       <main className="main-content">
-        <Routes>
-          <Route path="/"        element={<KBList />} />
-          <Route path="/kb/new"   element={<KBList />} />
-          <Route path="/kb/:id"   element={<KBDetail />} />
-        </Routes>
+        <div className="main-routes">
+          <Routes>
+            <Route path="/"        element={<KBList />} />
+            <Route path="/kb/new"   element={<KBList />} />
+            <Route path="/kb/:id"   element={<KBDetail />} />
+          </Routes>
+        </div>
         <footer className="page-footer">
-          Desarrollado por <span>IAmasters</span>
+          Desarrollado por <span>IAMasters</span> &nbsp;//&nbsp; 2026 Ed.
         </footer>
       </main>
     </div>
