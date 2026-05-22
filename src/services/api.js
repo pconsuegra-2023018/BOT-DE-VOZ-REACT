@@ -190,3 +190,88 @@ export const deleteSource = async (kbId, sourceId) => {
     return { data: null, error: true, message: err.message };
   }
 };
+
+/* ─────────────────────────────────────────────
+   ONBOARDING
+   ───────────────────────────────────────────── */
+const onboardingApi = axios.create({
+  baseURL: '/api/onboarding',
+  timeout: 300000, // 5 min — la creación de KBs puede tardar
+});
+
+/**
+ * Verifica si el onboarding ya fue completado.
+ * GET /api/onboarding/status
+ */
+export const getOnboardingStatus = async () => {
+  try {
+    const res = await onboardingApi.get('/status');
+    return { data: res.data, error: false };
+  } catch (err) {
+    console.error('Error checking onboarding status:', err);
+    return { data: { completed: false }, error: true, message: err.message };
+  }
+};
+
+/**
+ * Obtiene la configuración guardada del onboarding.
+ * GET /api/onboarding/config
+ */
+export const getOnboardingConfig = async () => {
+  try {
+    const res = await onboardingApi.get('/config');
+    return { data: res.data, error: false };
+  } catch (err) {
+    console.error('Error fetching onboarding config:', err);
+    return { data: null, error: true, message: err.message };
+  }
+};
+
+/**
+ * Ejecuta el setup completo: genera los textos y crea las KBs en Retell.
+ * POST /api/onboarding/setup
+ * @param {object} payload — datos del wizard
+ */
+// ─── Calendar ───────────────────────────────────────────────
+const calendarApi = axios.create({ baseURL: '/api/v1/calendar', timeout: 10_000 });
+
+export const getBookings = async (status = 'upcoming') => {
+  try {
+    const res = await calendarApi.get('/bookings', { params: { status } });
+    return res.data;
+  } catch (err) {
+    console.error('Error fetching bookings:', err);
+    return { status: 'error', bookings: [] };
+  }
+};
+
+export const cancelBooking = async (bookingUid, reason = 'Cancelado desde el dashboard') => {
+  try {
+    const res = await calendarApi.post('/cancel', { bookingUid, reason });
+    return res.data;
+  } catch (err) {
+    console.error('Error cancelling booking:', err);
+    return { status: 'error' };
+  }
+};
+
+export const rescheduleBooking = async (bookingUid, newDate, newTime) => {
+  try {
+    const res = await calendarApi.post('/reschedule', { bookingUid, newDate, newTime });
+    return res.data;
+  } catch (err) {
+    console.error('Error rescheduling booking:', err);
+    return { status: 'error' };
+  }
+};
+
+// ─── Onboarding ─────────────────────────────────────────────
+export const setupOnboarding = async (payload) => {
+  try {
+    const res = await onboardingApi.post('/setup', { ...payload, mode: 'single' });
+    return { data: res.data, error: false };
+  } catch (err) {
+    console.error('Error during onboarding setup:', err.response?.data || err.message);
+    return { data: null, error: true, message: err.response?.data?.message || err.message };
+  }
+};

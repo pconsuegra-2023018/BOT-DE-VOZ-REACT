@@ -1,10 +1,13 @@
 import { Routes, Route, NavLink, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { FaRegFolderOpen, FaRegCircle } from 'react-icons/fa6';
+import { FaRegFolderOpen, FaRegCircle, FaCalendarDays } from 'react-icons/fa6';
 import { Toaster } from 'react-hot-toast';
 import { KBProvider, useKB } from './context/KBContext';
-import KBList   from './pages/KBList';
-import KBDetail from './pages/KBDetail';
+import KBList           from './pages/KBList';
+import KBDetail         from './pages/KBDetail';
+import OnboardingWizard from './pages/OnboardingWizard';
+import Appointments     from './pages/Appointments';
+import { getOnboardingStatus } from './services/api';
 
 /* ─── Server health hook ─── */
 function useHealth() {
@@ -24,7 +27,7 @@ function useHealth() {
 }
 
 /* ─── Sidebar ─── */
-function Sidebar({ collapsed, onToggle }) {
+function Sidebar({ collapsed, onToggle, onResetOnboarding }) {
   const { kbList, loading } = useKB();
   const health = useHealth();
   const navigate = useNavigate();
@@ -96,6 +99,17 @@ function Sidebar({ collapsed, onToggle }) {
           );
         })}
 
+        {!collapsed && <p className="sidebar-section">Agenda</p>}
+        {collapsed && <div className="my-3 mx-auto w-px h-4 bg-white/10" />}
+        <NavLink
+          to="/appointments"
+          title={collapsed ? 'Citas' : undefined}
+          className={({ isActive }) => `sidebar-link ${collapsed ? 'sidebar-link--icon' : ''} ${isActive ? 'sidebar-link--active' : ''}`}
+        >
+          <FaCalendarDays size={13} className="flex-shrink-0" />
+          {!collapsed && <span>Citas agendadas</span>}
+        </NavLink>
+
         {!collapsed && <p className="sidebar-section">Comportamiento</p>}
         {collapsed && <div className="my-3 mx-auto w-px h-4 bg-white/10" />}
         <NavLink
@@ -108,22 +122,35 @@ function Sidebar({ collapsed, onToggle }) {
           {!collapsed && <span>Identidad de IA</span>}
         </NavLink>
       </nav>
+
+      {/* Reconfigurar */}
+      <div className="sidebar-footer">
+        <button
+          onClick={onResetOnboarding}
+          title={collapsed ? 'Reconfigurar agente' : undefined}
+          className={`sidebar-link sidebar-link--reset ${collapsed ? 'sidebar-link--icon' : ''}`}
+        >
+          <FaRegCircle size={9} className="flex-shrink-0 opacity-60" />
+          {!collapsed && <span>Reconfigurar agente</span>}
+        </button>
+      </div>
     </aside>
   );
 }
 
 /* ─── Layout shell ─── */
-function Layout() {
+function Layout({ onResetOnboarding }) {
   const [collapsed, setCollapsed] = useState(false);
   return (
     <div className="app-shell">
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(p => !p)} />
+      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(p => !p)} onResetOnboarding={onResetOnboarding} />
       <main className="main-content">
         <div className="main-routes">
           <Routes>
-            <Route path="/"        element={<KBList />} />
-            <Route path="/kb/new"   element={<KBList />} />
-            <Route path="/kb/:id"   element={<KBDetail />} />
+            <Route path="/"             element={<KBList />} />
+            <Route path="/kb/new"        element={<KBList />} />
+            <Route path="/kb/:id"        element={<KBDetail />} />
+            <Route path="/appointments"  element={<Appointments />} />
           </Routes>
         </div>
         <footer className="page-footer">
@@ -136,6 +163,37 @@ function Layout() {
 
 /* ─── Root ─── */
 export default function App() {
+  const [onboardingDone, setOnboardingDone] = useState(null); // null = checking
+
+  useEffect(() => {
+    getOnboardingStatus().then(res => {
+      setOnboardingDone(res.data?.completed === true);
+    });
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    setOnboardingDone(true);
+  };
+
+  // Mientras verifica, pantalla en blanco (evita flash)
+  if (onboardingDone === null) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100svh', background: '#101015' }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: '2px solid rgba(103,232,249,0.2)', borderTopColor: '#67e8f9', animation: 'spin 0.8s linear infinite' }} />
+      </div>
+    );
+  }
+
+  // Si el onboarding no está completado, mostrar wizard
+  if (!onboardingDone) {
+    return (
+      <>
+        <Toaster position="top-right" toastOptions={{ style: { background: '#1e1e2a', color: '#e4e4f0', border: '1px solid rgba(255,255,255,0.08)', fontSize: '13px', borderRadius: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' } }} />
+        <OnboardingWizard onComplete={handleOnboardingComplete} />
+      </>
+    );
+  }
+
   return (
     <KBProvider>
       <Toaster
@@ -151,7 +209,7 @@ export default function App() {
           },
         }}
       />
-      <Layout />
+      <Layout onResetOnboarding={() => setOnboardingDone(false)} />
     </KBProvider>
   );
 }
